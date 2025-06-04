@@ -1,0 +1,67 @@
+name: 'Validate Pull Request'
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  actions: read
+  contents: write
+  id-token: write
+  packages: write
+  pull-requests: write
+  security-events: write 
+
+jobs:
+  validate_pull_request:
+    name: "Validate Pull Request"
+    runs-on: macos-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout Code Base
+        uses: actions/checkout@v4
+
+      - name: Configure fvm
+        uses: kuhnroyal/flutter-fvm-config-action@v2
+        id: fvm-config-action
+
+      - name: Checkout Actions
+        uses: actions/checkout@v4
+        with:
+          path: .github/mcore_gh_actions
+          repository: mgmri-dge/mcore_gh_actions
+          ssh-key: ${{ secrets.SSH_PRIVATE_MCORE_GH_ACTIONS }}
+
+      - uses: ./.github/mcore_gh_actions/.github/actions/setup_jfrog
+        id: setup_jfrog
+
+      - name: Validate Dart / Flutter
+        uses: ./.github/mcore_gh_actions/.github/actions/dart_validate
+        with:
+          channel: ${{ steps.fvm-config-action.outputs.FLUTTER_CHANNEL }}
+          code-coverage: skip # Or 0-100 to enforce coverage
+          flutter-version: ${{ steps.fvm-config-action.outputs.FLUTTER_VERSION }}
+          jfrog-token: ${{ steps.setup_jfrog.outputs.JFROG_TOKEN }}
+          publish-dry-run: false
+          vulnerability-scan: false
+
+  dart_vulnerability_scan:
+      name: "Dart Vulnerability Scan"
+      needs: validate_pull_request
+      runs-on: ubuntu-latest
+
+      steps:
+        - name: Checkout Code
+          uses: actions/checkout@v4
+
+        - name: Checkout Actions
+          uses: actions/checkout@v4
+          with:
+            path: .github/mcore_gh_actions
+            repository: mgmri-dge/mcore_gh_actions
+            ssh-key: ${{ secrets.SSH_PRIVATE_MCORE_GH_ACTIONS }}
+
+        - name: Run Vulnerability Scan
+          uses: ./.github/mcore_gh_actions/.github/actions/dart_vulnerability_scan
+          with:
+            token: ${{ secrets.GITHUB_TOKEN }}

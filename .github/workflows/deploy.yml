@@ -1,0 +1,76 @@
+name: 'Deploy to Live Channel'
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    # Configure to run only for specific files. 
+    paths:
+    - "lib/**"
+    - "web/**"
+
+permissions:
+  actions: read
+  contents: write
+  id-token: write
+  packages: write
+  pull-requests: write
+  security-events: write 
+
+jobs:
+  deploy_live_website:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code Base
+        uses: actions/checkout@v4
+
+      - name: Checkout Actions
+        uses: actions/checkout@v4
+        with:
+          path: .github/mcore_gh_actions
+          repository: mgmri-dge/mcore_gh_actions
+          ssh-key: ${{ secrets.SSH_PRIVATE_MCORE_GH_ACTIONS }}
+
+      - uses: ./.github/mcore_gh_actions/.github/actions/setup_jfrog
+        id: setup_jfrog
+
+      - name: Configure fvm
+        uses: kuhnroyal/flutter-fvm-config-action@v2
+        id: fvm-config-action
+
+      - name: Setup Flutter
+        uses: ./.github/mcore_gh_actions/.github/actions/setup_flutter
+        with:
+          channel: ${{ steps.fvm-config-action.outputs.FLUTTER_CHANNEL }}
+          flutter-version: ${{ steps.fvm-config-action.outputs.FLUTTER_VERSION }}
+          jfrog-token: ${{ steps.setup_jfrog.outputs.JFROG_TOKEN }}
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build dev web app
+        run: flutter build web --release --dart-define=FLAVOR=dev
+
+      # Add any build steps here. For example:
+      # - run: npm ci && npm run build
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.FIREBASE_DEV_SERVICE_ACCOUNT }}"
+          projectId: mgm-resorts-dev
+          channelId: live
+          target: branchSOP
+
+      # deploys to live channel
+      - name: Build prod web app
+        run: flutter build web --release --dart-define=FLAVOR=prod
+      # Add any build steps here. For example:
+      # - run: npm ci && npm run build
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.FIREBASE_PROD_SERVICE_ACCOUNT }}"
+          projectId: mgm-resorts-app
+          channelId: live
+          target: branchSOP
