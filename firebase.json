@@ -1,0 +1,26 @@
+{
+  "hosting": {
+    "public": "build/web",
+    "target": "branchSOP",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "android/**",
+      "ios/**",
+      "lib/**",
+      "test/**",
+      "web/**",
+      "**/build/ios",
+      "**/build/android",
+      "**/build/test_cache",
+      "**/build/unit_test_assets",
+      "**/build/web/canvaskit/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

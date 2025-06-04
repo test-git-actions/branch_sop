@@ -1,0 +1,17 @@
+include: package:flutter_lints/flutter.yaml
+analyzer:
+  exclude:
+    - vendor/**
+    - '**/*.g.dart'
+    - '**/*.freezed.dart'
+    - '**/*.gr.dart'
+    - '**/*.config.dart'
+linter:
+  rules:
+    ## The following rules are excluded only to keep compatibility with our previous lint set (pedantic).
+    ## There's room to discuss them individually and raise PRs adjusting our codebase.
+    unnecessary_string_escapes: false
+    avoid_function_literals_in_foreach_calls: false
+    overridden_fields: false
+    require_trailing_commas: true
+    

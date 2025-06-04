@@ -1,0 +1,23 @@
+{
+  "projects": {
+    "prod": "mgm-resorts-app",
+    "dev": "mgm-resorts-dev",
+    "default": "mgm-resorts-dev"
+  },
+  "targets": {
+    "mgm-resorts-app": {
+      "hosting": {
+        "branchSOP": [
+          "branch-sop-prod"
+        ]
+      }
+    },
+    "mgm-resorts-dev": {
+      "hosting": {
+        "branchSOP": [
+          "branch-links"
+        ]
+      }
+    }
+  }
+}
