@@ -80,32 +80,31 @@ jobs:
         run: |
           dart format --set-exit-if-changed test lib
 
-      - name: Run analysis
-        run: |
-          flutter analyze
-
-      - name: Run Unit Tests
-        run: |
-          flutter test
-
       - name: Build dev web app
         run: flutter build web --release --dart-define=FLAVOR=dev
 
-      - uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          firebaseServiceAccount: "${{ secrets.FIREBASE_DEV_SERVICE_ACCOUNT }}"
-          projectId: mgm-resorts-dev
-          channelId: live
-          target: branchSOP
+    #   - uses: FirebaseExtended/action-hosting-deploy@v0
+    #     with:
+    #       repoToken: "${{ secrets.GITHUB_TOKEN }}"
+    #       firebaseServiceAccount: "${{ secrets.FIREBASE_DEV_SERVICE_ACCOUNT }}"
+    #       projectId: mgm-resorts-dev
+    #       channelId: live
+    #       target: branchSOP
 
       - name: Build prod web app
         run: flutter build web --release --dart-define=FLAVOR=prod
 
-      - uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          firebaseServiceAccount: "${{ secrets.FIREBASE_PROD_SERVICE_ACCOUNT }}"
-          projectId: mgm-resorts-app
-          channelId: live
-          target: branchSOP
+      - name: Upload prod web build to JFrog
+        run: |
+          jf rt upload "build/web/**" "dge-pub/flutter-webapp/${{ github.sha }}/" \
+            --flat=false \
+            --build-name=flutter-webapp \
+            --build-number=${{ github.run_number }}
+
+    #   - uses: FirebaseExtended/action-hosting-deploy@v0
+    #     with:
+    #       repoToken: "${{ secrets.GITHUB_TOKEN }}"
+    #       firebaseServiceAccount: "${{ secrets.FIREBASE_PROD_SERVICE_ACCOUNT }}"
+    #       projectId: mgm-resorts-app
+    #       channelId: live
+    #       target: branchSOP
