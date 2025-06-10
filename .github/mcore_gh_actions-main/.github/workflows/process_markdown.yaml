@@ -1,0 +1,53 @@
+name: Process Markdown
+
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - '.github/actions/**/*.yaml'
+      - '.github/actions/**/*.yml'
+      - '.github/workflows/process_markdown.yaml'
+      - '**.md'
+  workflow_dispatch:
+
+concurrency:
+  group: generator
+
+jobs:
+  process_markdown:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Checkout Actions
+        uses: actions/checkout@v4
+        with:
+          path: .github/mcore_gh_actions
+          repository: mgmri-dge/mcore_gh_actions
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            actions: 
+              - '.github/actions/**/*.yaml'
+              - '.github/actions/**/*.yml'
+
+      - name: Setup Flutter
+        if: steps.filter.outputs.actions == 'true'
+        uses: subosito/flutter-action@v2
+
+      - name: Sync README with actions
+        if: steps.filter.outputs.actions == 'true'
+        shell: bash
+        run: |
+          set -e
+
+          dart pub global activate -spath packages/inline_markdown_files
+          dart pub global run inline_markdown_files:process
+
+      - name: Generate TOC
+        uses: ./.github/mcore_gh_actions/.github/actions/generate_markdown_toc
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}

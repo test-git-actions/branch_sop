@@ -1,0 +1,40 @@
+name: Generate Markdown TOC
+description: Generate a Markdown Table of Contents for all Markdown files in the repository.
+inputs:
+  commit:
+    default: 'true'
+    description: Whether or not to commit the changes back to the repo
+    required: false
+  commit-message:
+    default: '[actions skip]: Auto-generated Markdown TOCs'
+    description: The commit message to use when committing the changes.
+    required: false
+  files:
+    default: '**/*.md'
+    description: The files to be processed by the action.
+    required: false
+  token:
+    description: The GitHub token to use for pushing the updates.
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Node Dependencies
+      shell: bash
+      run: |
+        npm install -g doctoc
+
+    - name: Process TOC
+      shell: bash
+      run: |
+        doctoc . --github
+
+    - name: Post Markdown to GitHub
+      if: ${{ inputs.commit == 'true' }}
+      uses: test-room-7/action-update-file@v1
+      with:
+        branch: ${{ github.head_ref || github.ref_name }}
+        file-path: ${{ inputs.files }}
+        commit-msg: ${{ inputs.commit-message }}
+        github-token: ${{ inputs.token }}

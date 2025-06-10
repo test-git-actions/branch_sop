@@ -1,0 +1,63 @@
+name: Setup JFrog
+description: |
+  Authenticate with JFrog and emits the token using the output `JFROG_TOKEN`.
+  For systems like Maven and Gradle that also require a username, this action
+  will emit the token as the username using the output `JFROG_USER`.
+
+  When using this action, be sure to add the appropriate permissions to your
+  workflow:
+
+  ```yaml
+  permissions:
+    actions: read
+    contents: write
+    id-token: write
+    packages: write
+    pull-requests: write
+    security-events: write 
+  ```
+
+inputs:
+  oidc-provider-name:
+    default: 'mgmri-enterprise-oidc'
+    description: OIDC provider name.
+    required: false
+  pub-url:
+    default: https://mgmresorts.jfrog.io/artifactory/api/pub/dge-pub
+    description: URL to the Dart package repository
+    required: false
+  token:
+    description: The GitHub token to use for authentication.
+    required: true
+
+outputs:
+  JFROG_TOKEN:
+    description: JFrog authentication token
+    value: ${{ steps.setup-cli.outputs.oidc-token }}
+  JFROG_USER:
+    description: JFrog authentication user
+    value: ${{ steps.setup-cli.outputs.oidc-user }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Parse Repo URL
+      shell: bash
+      run: |
+        echo "JFROG_BASE_URL=https://`echo ${{ inputs.pub-url }} | awk -F/ '{print $3}'`" >> $GITHUB_ENV
+
+    - name: Setup JFrog CLI
+      id: setup-cli
+      uses: jfrog/setup-jfrog-cli@v4
+      env:
+        JF_GIT_TOKEN: ${{ inputs.token }}
+        JF_URL: ${{ env.JFROG_BASE_URL }}
+        JFROG_CLI_EXTRACTORS_REMOTE: ${{ inputs.pub-url }}
+        JFROG_CLI_RELEASES_REPO: ${{ inputs.pub-url }}
+      with:
+        oidc-provider-name: ${{ inputs.oidc-provider-name }}
+        disable-job-summary: false
+
+    - name: Set the JFrog Token
+      shell: bash
+      run: echo JFROG_TOKEN=${{ steps.setup-cli.outputs.oidc-token }} >> $GITHUB_ENV

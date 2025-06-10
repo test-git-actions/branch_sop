@@ -1,0 +1,110 @@
+customLicenses:
+  # MGM Resorts International's license is used for internal packages that are
+  # not published to pub.dev.  This license is used to ensure that the scanner
+  # does not flag these packages as having an unknown license.
+  #
+  # Any package that begins with "(c) MGM Resorts" or "© MGM Resorts" is
+  # considered to be an MGM Resorts package.
+  MGMRI: |-
+    (\(c\))?©?\s*MGM Resorts( International)?
+
+permittedLicenses:
+  - 'Apache-2.0'
+  - 'BSD-2-Clause'
+  - 'BSD-3-Clause'
+  - 'MGMRI' # Used for internal MGM Resorts International packages.
+  - 'MIT'
+  - 'MIT-Modern-Variant'
+  - 'MPL-2.0'
+  - 'Zlib'
+
+packageLicenseOverride:
+  # These packages do not have a license listed in their pub.dev, or they don't
+  # exist in pub.dev.  All of these overrides are necessary to inform the
+  # scanner of the license for them so the scanner knows how to handle them.
+  flutter: 'BSD-3-Clause'
+  flutter_driver: 'BSD-3-Clause'
+  flutter_gen: 'BSD-3-Clause'
+  flutter_goldens: 'BSD-3-Clause'
+  flutter_localizations: 'BSD-3-Clause'
+  flutter_web_plugins: 'BSD-3-Clause'
+  flutter_test: 'BSD-3-Clause'
+  fuchsia_remote_debug_protocol: 'BSD-3-Clause'
+  ForterFlutterPlugin: 'BSD-3-Clause' # doesn't follow Dart's naming convention for packages
+  hive: 'Apache-2.0'
+  integration_test: 'BSD-3-Clause'
+  latlong2: 'Apache-2.0'
+  rxdart: 'Apache-2.0'
+  sky_engine: 'BSD-3-Clause'
+
+  # No internal package will have a pub.dev entry, so the license scanner cannot
+  # ever determine their license.  Each time a new MGM package is added, it will
+  # need to be added to this list.
+  _: MGMRI
+  adobe_mobile_sdk: MGMRI
+  analytics_service: MGMRI
+  ble_state_plugin: MGMRI
+  bmp_flutter_sdk: MGMRI # akamai_bot_manager
+  chatbot: MGMRI
+  debug_proxy: MGMRI
+  debug_proxy_common: MGMRI
+  debug_proxy_plugin_desko: MGMRI
+  debug_proxy_plugin_dio: MGMRI
+  debug_proxy_plugin_gql: MGMRI
+  debug_proxy_plugin_http: MGMRI
+  debug_proxy_plugin_payments: MGMRI
+  debug_proxy_plugin_thales: MGMRI
+  debug_proxy_server: MGMRI
+  desko_scanner: MGMRI
+  feature_flag_service: MGMRI
+  freedom_pay: MGMRI
+  gcloud_client: MGMRI
+  in_tune_configuration: MGMRI
+  indigo_components: MGMRI
+  key_dispenser: MGMRI
+  kiosk_companion: MGMRI
+  kiosk_companion_client: MGMRI
+  kiosk_companion_common: MGMRI
+  kiosk_upgrade_plugin: MGMRI
+  logcat_monitor: MGMRI
+  mcore_kiosk_core_analysis: MGMRI
+  mcore_lints: MGMRI
+  mgm_clients: MGMRI
+  mgm_credit_card_scanner: MGMRI
+  mgm_lints: MGMRI
+  mgm_remote_logger: MGMRI
+  mgm_virtual_keyboard: MGMRI
+  monitoring_service: MGMRI
+  remote_configuration: MGMRI
+  rsf: MGMRI
+  service_common: MGMRI
+  thales_scanner: MGMRI
+  thales_scanner_sdk: MGMRI
+  tutorial_coach_mark: MGMRI
+  user_preferences: MGMRI
+  vega_components: MGMRI
+  vega_components_xl: MGMRI
+  vega_tokens: MGMRI
+  vega_tokens_xl: MGMRI
+
+  # Example applications
+  adobe_mobile_sdk_example: MGMRI
+  analytics_service_example: MGMRI
+  ble_state_plugin_example: MGMRI
+  companion_example: MGMRI
+  desko_manager: MGMRI
+  example: MGMRI
+  feature_flag_service_example: MGMRI
+  in_tune_configuration_example: MGMRI
+  key_dispenser_example: MGMRI
+  mcore_lints_example: MGMRI
+  mgm_clients_example: MGMRI
+  mgm_credit_card_scanner_example: MGMRI
+  mgm_lints_example: MGMRI
+  mgm_payments_example: MGMRI
+  monitoring_service_example: MGMRI
+  remote_configuration_example: MGMRI
+  rsf_example: MGMRI
+  thales_scanner_example: MGMRI
+  tutorial_coach_mark_demo: MGMRI
+  virtual_keyboard_example: MGMRI

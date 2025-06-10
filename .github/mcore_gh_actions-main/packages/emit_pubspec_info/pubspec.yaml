@@ -1,0 +1,23 @@
+name: emit_pubspec_info
+description: 'Scans a pubspec file and emits the information to a GitHub output'
+version: 1.0.0
+publish_to: none
+repository: https://github.com/mgmri-dge/mcore_gh_actions
+
+environment:
+  sdk: ^3.6.0
+
+executables:
+  emit_pubspec_info: process.dart
+
+dependencies:
+  args: ^2.5.0
+  emit_git_hub_output:
+    path: ../emit_git_hub_output
+  file: ^7.0.1
+  meta: ^1.17.0
+  pubspec_parse: ^1.5.0
+
+dev_dependencies:
+  flutter_lints: ^5.0.0
+  test: ^1.26.1

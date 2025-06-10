@@ -1,0 +1,48 @@
+name: Test Build Number
+
+on:
+  workflow_dispatch:
+
+
+concurrency:
+  cancel-in-progress: true
+  group: build
+
+jobs:
+  build-number:
+    name: "Generate Build Number"
+    runs-on: ubuntu-latest
+    outputs:
+      BUILD_NUMBER: ${{ steps.build-number.outputs.BUILD_NUMBER }}
+    steps:      
+      - name: Setup Github
+        run: |
+          git config --global user.name "action"
+          git config --global user.email "noop@github.com"
+          git config --global url."https://action:${{secrets.REPO_TOKEN}}@github.com/MGMResorts/".insteadOf ssh://git@github.com/MGMResorts/
+
+      - name: Get composite run steps repository
+        uses: actions/checkout@v4
+        with:
+          repository: MGMResorts/action_auto_build_number
+          token: ${{ secrets.REPO_TOKEN }}
+          path: ./.github/action_auto_build_number
+      
+      - name: Generate Build Number
+        id: build-number
+        uses: ./.github/action_auto_build_number
+
+      - name: Echo Build Number
+        run: |
+          echo "Build Number: ${{ steps.build-number.outputs.BUILD_NUMBER }}"
+
+  echo-build-number:
+    needs: build-number
+    name: "Echo Build Numer"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Echo Build Number"
+        run: |
+          echo "Build Number: ${{ needs.build-number.outputs.BUILD_NUMBER }}"
+
+    

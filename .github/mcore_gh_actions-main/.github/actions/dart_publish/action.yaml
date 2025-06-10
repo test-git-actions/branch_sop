@@ -1,0 +1,114 @@
+name: Dart Publish
+description: |
+  Publish a Dart package to a JFrog repository.  This action requires the JFrog
+  token from the [setup_jfrog](#setup_jfrog) action.  This will perform all the
+  validation provided by [dart_validate](#dart_validate), unless the `validate`
+  input is `false`.
+
+  If any aspect of the validation fails, the build itself will fail and it will
+  not attempt to publish the package to JFrog.
+inputs:
+  channel:
+    default: stable
+    description: Flutter channel to use.
+    required: false
+  check-licenses:
+    default: 'true'
+    description: Whether or not to perform the license check against the packages.
+    required: false
+  code-coverage:
+    default: '80'
+    description: The percent of lines of code that must be covered by tests.  A value of "skip" will disable coverage evaluation.
+    required: false
+  flutter-version:
+    default: any
+    description: Specific Flutter version to use.
+    required: false
+  jfrog-ssdlc:
+    default: 'true'
+    description: Whether to run JFrog SSDLC actions on the package.  This should only be false with security approvals.
+    required: false
+  jfrog-token:
+    description: JFrog authentication token
+    required: true
+  jfrog-user:
+    description: JFrog authentication user
+    required: true
+  lock-file:
+    default: ''
+    description: Path to the pubspec.lock file to validate.  Typically only required for monorepos.
+    required: false
+  path:
+    default: .
+    description: Path to the Dart package to publish
+    required: false
+  pub-url:
+    default: https://mgmresorts.jfrog.io/artifactory/api/pub/dge-pub
+    description: URL to the Dart package repository
+    required: false
+  test-defines:
+    default: ''
+    description: Test defines to pass to the test command
+    required: false
+  test-flags:
+    default: ''
+    description: Test flags to pass to the test command
+    required: false
+  token:
+    description: The GitHub token to use for authentication.
+    required: true
+  validate:
+    default: 'true'
+    description: Whether to validate the package before publishing
+    required: false
+  vulnerability-scan:
+    default: 'true'
+    description: Whether to run a vulnerability scan on the package
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set Pub URL
+      shell: bash
+      run: |
+        set -e
+        if test "${{ inputs.pub-url }}" != ""; then
+          echo "PUB_HOSTED_URL=${{ inputs.pub-url }}" >> $GITHUB_ENV
+        fi
+
+    - name: Validate
+      if: ${{ inputs.validate }} == "true"
+      uses: ./.github/mcore_gh_actions/.github/actions/dart_validate
+      with:
+        channel: ${{ inputs.channel }}
+        check-licenses: ${{ inputs.check-licenses }}
+        code-coverage: ${{ inputs.code-coverage }}
+        flutter-version: ${{ inputs.flutter-version }}
+        jfrog-token: ${{ inputs.jfrog-token }}
+        lock-file: ${{ inputs.lock-file }}
+        path: ${{ inputs.path }}
+        pub-url: ${{ inputs.pub-url }}
+        publish-dry-run: 'false'
+        test-defines: ${{ inputs.test-defines }}
+        test-flags: ${{ inputs.test-flags }}
+        token: ${{ inputs.token }}
+        vulnerability-scan: ${{ inputs.vulnerability-scan }}
+
+    - name: Publish
+      shell: bash
+      run: |-
+        set -e
+        echo "Publishing package..."
+        dart pub publish --force
+      working-directory: ${{ inputs.path }}
+
+    - name: JFrog SSDLC
+      if: ${{ inputs.jfrog-ssdlc }} == "true"
+      uses: ./.github/mcore_gh_actions/.github/actions/dart_jfrog_ssdlc
+      with:
+        jfrog-token: ${{ inputs.jfrog-token }}
+        lock-file: ${{ inputs.lock-file }}
+        path: ${{ inputs.path }}
+        pub-url: ${{ inputs.pub-url }}
+        token: ${{ inputs.token }}

@@ -1,0 +1,62 @@
+name: 'Auto Build Number'
+description: |
+  Provide a unique auto-incrementing build number.  The build number will be
+  stored in a text file in the repository using an orphan branch.  If the branch
+  does not exist, it will be created.  The build number will be incremented each
+  time the action is run.
+inputs:
+  branch:
+    description: 'Branch to use to host the build.number file.'
+    required: false
+    default: 'build_number'
+  fileName:
+    description: 'Name of the build.number file.'
+    required: false
+    default: 'build.number'
+
+outputs:
+  BUILD_NUMBER:
+    description: The build number to use.
+    value: ${{ steps.build-number.outputs.BUILD_NUMBER }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Dart
+      id: set-up-dart
+      uses: dart-lang/setup-dart@v1
+      with:
+        sdk: 'stable'
+
+    - name: Create action directory
+      shell: bash
+      run: |
+        set -e
+        mkdir -p ${{ github.workspace }}/action
+
+    - name: Activate the auto build number action
+      shell: bash
+      run: |
+        set -e
+        # In order for `dart pub global activate` to work with path, it is 
+        # mandatory to wrap the target path in double quotes.
+        dart pub global activate -s path ".github/mcore_gh_actions/packages/action_auto_build_number/"
+
+    - name: Set up Github Action Identity
+      shell: bash
+      run: |
+        git config --global user.name "action"
+        git config --global user.email "noop@github.com"
+
+    - name: Create Build Number
+      shell: bash
+      id: build-number
+      run: |
+        set -e
+        dart pub global run auto_build_number:increment_build_number --branch ${{ inputs.branch }} --file ${{ inputs.fileName }}
+
+    - name: Echo Build Number
+      shell: bash
+      run: |
+        set -e
+        echo "Build number is ${{ steps.build-number.outputs.BUILD_NUMBER }}"

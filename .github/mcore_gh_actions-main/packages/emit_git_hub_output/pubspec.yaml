@@ -1,0 +1,15 @@
+name: emit_git_hub_output
+description: 'Meant to be used in GitHub Actions to emit output variables via Dart'
+version: 1.0.0
+publish_to: https://mgmresorts.jfrog.io/artifactory/api/pub/dge-pub
+repository: https://github.com/mgmri-dge/mcore_gh_actions
+
+environment:
+  sdk: ^3.6.0
+
+dependencies:
+  meta: ^1.17.0
+
+dev_dependencies:
+  flutter_lints: ^5.0.0
+  test: ^1.26.1

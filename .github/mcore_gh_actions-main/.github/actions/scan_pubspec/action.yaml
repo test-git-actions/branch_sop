@@ -1,0 +1,67 @@
+name: Scan Pubspec
+description: |
+  Scans a pubspec.yaml file and makes the information available via GitHub 
+  outputs.  This action requires that the Dart SDK is installed and available
+  in the path.
+inputs:
+  path:
+    default: .
+    description: Path to pubspec.yaml file to scan.
+    required: false
+
+outputs:
+  PUBSPEC_DESCRIPTION:
+    description: The desription from the pubspec.yaml file.
+    value: ${{ steps.scan-pubspec.outputs.PUBSPEC_DESCRIPTION }}
+  PUBSPEC_FLUTTER_SDK:
+    description: Will be true if the pubspec.yaml file is for a Flutter package and false otherwise.
+    value: ${{ steps.scan-pubspec.outputs.PUBSPEC_FLUTTER_SDK }}
+  PUBSPEC_NAME:
+    description: The name from the pubspec.yaml file.
+    value: ${{ steps.scan-pubspec.outputs.PUBSPEC_NAME }}
+  PUBSPEC_PUBLISH_TO:
+    description: The value set in the publish_to field of the pubspec.yaml file.
+    value: ${{ steps.scan-pubspec.outputs.PUBSPEC_PUBLISH_TO }}
+  PUBSPEC_REPOSITORY:
+    description: The repository or homepage value from the pubspec.yaml file.
+    value: ${{ steps.scan-pubspec.outputs.PUBSPEC_REPOSITORY }}
+  PUBSPEC_VERSION:
+    description: The full version from the pubspec.yaml file.
+    value: ${{ steps.scan-pubspec.outputs.PUBSPEC_VERSION }}
+  PUBSPEC_VERSION_MAJOR:
+    description: The major value from the pubspec version.
+    value: ${{ steps.scan-pubspec.outputs.PUBSPEC_VERSION_MAJOR }}
+  PUBSPEC_VERSION_MINOR:
+    description: The minor value from the pubspec version.
+    value: ${{ steps.scan-pubspec.outputs.PUBSPEC_VERSION_MINOR }}
+  PUBSPEC_VERSION_PATCH:
+    description: The patch value from the pubspec version.
+    value: ${{ steps.scan-pubspec.outputs.PUBSPEC_VERSION_PATCH }}
+  PUBSPEC_VERSION_PRE_RELEASE:
+    description: The prelease value from the pubspec version, if any.
+    value: ${{ steps.scan-pubspec.outputs.PUBSPEC_VERSION_PRE_RELEASE }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Scan pubspec.yaml
+      id: scan-pubspec
+      shell: bash
+      run: |
+        dart pub global activate -spath ./.github/mcore_gh_actions/packages/emit_pubspec_info
+        emit_pubspec_info \
+          --pubspec ${{ inputs.path }}/pubspec.yaml \
+
+    - name: Echo outputs
+      shell: bash
+      run: |
+        echo "PUBSPEC_DESCRIPTION=${{ steps.scan-pubspec.outputs.PUBSPEC_DESCRIPTION }}"
+        echo "PUBSPEC_FLUTTER_SDK=${{ steps.scan-pubspec.outputs.PUBSPEC_FLUTTER_SDK }}"
+        echo "PUBSPEC_NAME=${{ steps.scan-pubspec.outputs.PUBSPEC_NAME }}"
+        echo "PUBSPEC_PUBLISH_TO=${{ steps.scan-pubspec.outputs.PUBSPEC_PUBLISH_TO }}"
+        echo "PUBSPEC_REPOSITORY=${{ steps.scan-pubspec.outputs.PUBSPEC_REPOSITORY }}"
+        echo "PUBSPEC_VERSION=${{ steps.scan-pubspec.outputs.PUBSPEC_VERSION }}"
+        echo "PUBSPEC_VERSION_MAJOR=${{ steps.scan-pubspec.outputs.PUBSPEC_VERSION_MAJOR }}"
+        echo "PUBSPEC_VERSION_MINOR=${{ steps.scan-pubspec.outputs.PUBSPEC_VERSION_MINOR }}"
+        echo "PUBSPEC_VERSION_PATCH=${{ steps.scan-pubspec.outputs.PUBSPEC_VERSION_PATCH }}"
+        echo "PUBSPEC_VERSION_PRE_RELEASE=${{ steps.scan-pubspec.outputs.PUBSPEC_VERSION_PRE_RELEASE }}"

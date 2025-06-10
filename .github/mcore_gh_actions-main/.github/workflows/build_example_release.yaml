@@ -1,0 +1,116 @@
+name: Build Release Example App
+
+on:
+  workflow_call:
+    inputs:
+        working-directory:
+            description: "Directory to run the steps in"
+            type: string
+            required: true
+        package-name:
+            description: "The name of the package being built"
+            type: string
+            required: true
+    secrets:
+        ssh-private-key:
+            description: "The SSH private keys used for downloading dependencies"
+            required: true
+        repository-token:
+            description: "The SSH private keys used for downloading dependencies"
+            required: true
+        artifactory-user:
+            description: "The username for Artifactory authentication"
+            required: true
+        artifactory-api-key:
+            description: "The API key for Artifactory authentication"
+            required: true
+        fdotf-config-aes-key:
+            description: "The AES key for FDOTF configuration"
+            required: false
+        fdotf-firebase-config-uat:
+            description: "The Firebase configuration for UAT environment"
+            required: false
+        fdotf-user-email:
+            description: "The user email for FDOTF"
+            required: false
+        fdotf-user-password:
+            description: "The user password for FDOTF"
+            required: false
+
+env:
+  GPR_API_KEY: ${{ secrets.repository-token }}
+  GPR_USER: action
+
+jobs:
+  build-number:
+    runs-on: ubuntu-latest
+    outputs:
+      BUILD_NUMBER: ${{ steps.build-number.outputs.BUILD_NUMBER }}
+    steps:
+      - name: "Generate Build Number"
+        uses: MGMResorts/actions/packages/action_auto_build_number@main
+        id: build-number
+        with:
+          repository-token: ${{ secrets.repository-token }}
+          branch: ${{ inputs.package-name }}_example_build_number
+
+  build_android:
+    needs: build-number
+    name: "Build Android App"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ARTIFACTORY_USER: ${{ secrets.artifactory-user }}
+      ARTIFACTORY_API_KEY: ${{ secrets.artifactory-api-key }}
+      FDOTF_CONFIG_AES_KEY: ${{ secrets.fdotf-config-aes-key }}
+      FDOTF_FIREBASE_CONFIG_UAT: ${{ secrets.fdotf-firebase-config-uat }}
+      FDOTF_USER_EMAIL: ${{ secrets.fdotf-user-email }}
+      FDOTF_USER_PASSWORD: ${{ secrets.fdotf-user-password }}
+    steps:
+      - name: Checkout Code Base
+        uses: actions/checkout@v4
+
+      - name: Configure Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'adopt'
+          java-version: '21'
+
+      - name: Setup Flutter
+        id: set-up-flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ steps.fvm-config-action.outputs.FLUTTER_VERSION }}
+          channel: ${{ steps.fvm-config-action.outputs.FLUTTER_CHANNEL }}
+
+      - name: Setup Github
+        run: |
+          git config --global user.name "action"
+          git config --global user.email "noop@github.com"
+
+      - name: SSH Key Setup
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.ssh-private-key }}
+
+      - name: Setup Environment
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          flutter config --no-cli-animations
+          flutter doctor -v
+          flutter pub get
+
+      - name: Perform Release Build
+        working-directory: ${{ inputs.working-directory }}/example
+        run: |
+          flutter build apk --release --build-number=${{ needs.build-number.outputs.BUILD_NUMBER }}
+          mv build/app/outputs/flutter-apk/app-release.apk.sha1 build/app/outputs/flutter-apk/${{ inputs.package-name }}_v${{ needs.build-number.outputs.BUILD_NUMBER }}_release.apk.sha1
+          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/${{ inputs.package-name }}_example_v${{ needs.build-number.outputs.BUILD_NUMBER }}_release.apk
+
+      - name: Upload Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.package-name }}_example_v${{ needs.build-number.outputs.BUILD_NUMBER }}_release.apk
+          overwrite: true
+          path: ${{ inputs.working-directory }}/example/build/app/outputs/flutter-apk/

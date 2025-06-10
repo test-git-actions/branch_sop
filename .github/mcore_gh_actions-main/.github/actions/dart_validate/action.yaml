@@ -1,0 +1,216 @@
+name: Dart Validate
+description: |
+  Performs formatting, analysis, and testing of Dart and Flutter packages using
+  the built in tools.  This action can autodetect if the package is a Dart
+  package or a Flutter package and will run the appropriate commands for each.
+  Finally, this will validate the code coverage percent is at least the 
+  `code-coverage` level, though it will disable the coverage check if that
+  value is set to "skip".
+
+  This will perform a license check against the package including all
+  dependencies, both direct and transient.  The list of licenses allowed can be
+  found in the [license.yaml](./.github/config/license.yaml) file.  Whenever a
+  new MGM package is added, it will need to be added to the list of overrides
+  using the `MGMRI` license.  Otherwise, the license scanner will fail on that
+  license due to the license being flagged as unknown.  The license scanner can
+  be disabled by setting `check-licenses` to `false`.
+
+  A vulnerability scan will be performed against the package including all
+  dependencies, both direct and transient.  The output of the vulnerability scan
+  will be a standard SARIF file that will then be uploaded to the GitHub
+  Security section.  If any vulnerabilities are found, the build will fail.  The
+  vulnerability scan can be disabled by setting `vulnerability-scan` to
+
+inputs:
+  channel:
+    default: stable
+    description: Flutter channel to use.
+    required: false
+  check-licenses:
+    default: 'true'
+    description: Whether or not to perform the license check against the packages.
+    required: false
+  code-coverage:
+    default: '80'
+    description: The percent of lines of code that must be covered by tests.  A value of "skip" will disable coverage evaluation.
+    required: false
+  flutter-version:
+    default: any
+    description: Specific Flutter version to use.
+    required: false
+  jfrog-token:
+    description: JFrog authentication token
+    required: true
+  lock-file:
+    default: ''
+    description: Path to the pubspec.lock file to validate.  Typically only required for monorepos.
+    required: false
+  path:
+    default: .
+    description: Path to the Dart / Flutter package to validate
+    required: false
+  pub-url:
+    default: https://mgmresorts.jfrog.io/artifactory/api/pub/dge-pub
+    description: URL to the Dart package repository
+    required: false
+  publish-dry-run:
+    default: 'true'
+    description: Whether or not to perform a dry run of the publish command.
+    required: false
+  test-defines:
+    default: ''
+    description: Test defines to pass to the test command
+    required: false
+  test-flags:
+    default: ''
+    description: Test flags to pass to the test command
+    required: false
+  token:
+    description: The GitHub token to use for authentication.
+    required: true
+  vulnerability-scan:
+    default: 'true'
+    description: Whether or not to run a vulnerability scan on the packages.
+    required: false
+  validate-formatting:
+    default: 'true'
+    description: Set to false to disable code formatting checks
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Flutter
+      uses: ./.github/mcore_gh_actions/.github/actions/setup_flutter
+      with:
+        channel: ${{ inputs.channel }}
+        flutter-version: ${{ inputs.flutter-version }}
+        jfrog-token: ${{ inputs.jfrog-token }}
+        pub-url: ${{ inputs.pub-url }}
+
+    - name: Validate
+      shell: bash
+      id: validate
+      run: |
+        set -e
+        if grep -q flutter: "pubspec.yaml"; then 
+          flutter packages get
+          flutter doctor -v
+          if test -d "example"; then
+            cd example
+            flutter pub get
+            cd ..
+          fi
+          if test "${{ inputs.generate_code }}" = "true"; then
+            dart run build_runner build --delete-conflicting-outputs -v
+            if test -d "example"; then
+              cd example
+              if grep -q build_runner: "pubspec.yaml"; then 
+                dart run build_runner build --delete-conflicting-outputs -v
+              fi
+              cd ..
+            fi
+          fi
+          if test "${{ inputs.validate-formatting }}" = "true"; then
+            dart format lib test --set-exit-if-changed
+          fi
+          flutter analyze
+          flutter ${{ inputs.test-defines }} test --coverage ${{ inputs.test-flags }}
+          if test -d "example"; then
+            cd example
+            if test "${{ inputs.validate-formatting }}" = "true"; then
+              dart format lib --set-exit-if-changed
+            fi
+            if test -d "test"; then
+              if test "${{ inputs.validate-formatting }}" = "true"; then
+                dart format test --set-exit-if-changed
+              fi
+              flutter test
+              cd ..
+            fi
+            cd ..
+          fi
+        else
+          dart pub get
+          flutter doctor -v
+          if test -d "example"; then
+            cd example
+            dart pub get
+            cd ..
+          fi
+          if test "${{ inputs.generate_code }}" = "true"; then
+            dart run build_runner build --delete-conflicting-outputs -v
+            if test -d "example"; then
+              cd example
+              if grep -q build_runner: "pubspec.yaml"; then 
+                dart run build_runner build --delete-conflicting-outputs -v
+              fi
+              cd ..
+            fi
+          fi
+          if test "${{ inputs.validate-formatting }}" = "true"; then
+            dart format lib test --set-exit-if-changed
+          fi
+          dart analyze
+          dart pub global activate coverage
+          dart ${{ inputs.test-defines }} test --coverage="coverage" ${{ inputs.test-flags }}
+          dart pub global run coverage:format_coverage --lcov --in=coverage --out=coverage/lcov.info --report-on=lib
+          if test -d "example"; then
+            cd example
+            if test "${{ inputs.validate-formatting }}" = "true"; then
+              dart format lib --set-exit-if-changed
+            fi
+            if test -d "test"; then
+              if test "${{ inputs.validate-formatting }}" = "true"; then
+                dart format test --set-exit-if-changed
+              fi
+              dart test
+              cd ..
+            fi
+            cd ..
+          fi
+        fi
+      working-directory: ${{ inputs.path }}
+
+    - name: Is Test Coverage Skipped
+      if: inputs.code-coverage == 'skip'
+      shell: bash
+      run: echo "Test coverage is skipped"
+
+    - name: Is Test Coverage NOT Skipped
+      if: inputs.code-coverage != 'skip'
+      shell: bash
+      run: echo "Test coverage is NOT skipped"
+
+    - name: Test Coverage
+      if: inputs.code-coverage != 'skip'
+      uses: VeryGoodOpenSource/very_good_coverage@v3
+      with:
+        path: ${{ inputs.path }}/coverage/lcov.info
+        min_coverage: ${{ inputs.code-coverage }}
+
+    - name: Perform License Check
+      if: inputs.check-licenses == 'true'
+      shell: bash
+      run: |
+        set -e
+        cp ./.github/mcore_gh_actions/.github/config/license.yaml ${{ inputs.path }}/licenses.yaml
+        dart pub global activate license_checker2
+        cd ${{ inputs.path }}
+        lic_ck check-licenses -c licenses.yaml -a
+
+    - name: Perform Vulnerability Scan
+      if: inputs.vulnerability-scan == 'true'
+      uses: ./.github/mcore_gh_actions/.github/actions/dart_vulnerability_scan
+      with:
+        lock-file: ${{ inputs.lock-file }}
+        path: ${{ inputs.path }}
+        token: ${{ inputs.token }}
+
+    - name: Perform Publish Dry Run
+      if: inputs.publish-dry-run != 'false'
+      shell: bash
+      run: |
+        set -e
+        dart pub publish --dry-run
+      working-directory: ${{ inputs.path }}

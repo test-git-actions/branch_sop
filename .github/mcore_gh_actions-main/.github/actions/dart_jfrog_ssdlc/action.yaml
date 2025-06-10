@@ -1,0 +1,159 @@
+name: Dart JFrog SSDLC
+description: |
+  Performs the SSDLC actions required by the security team with regard to JFrog
+  for Dart and Flutter based packages.  This action requires that the Dart SDK
+  is installed and available in the path and that the JFrog CLI is already
+  installed.
+inputs:
+  jfrog-release-project:
+    default: 'dge'
+    description: The JFrog release project to use for the RBv2 promotion.
+    required: false
+  jfrog-token:
+    description: JFrog authentication token
+    required: true
+  lock-file:
+    default: ''
+    description: Path to the pubspec.lock file to validate.  Typically only required for monorepos.
+    required: false
+  path:
+    default: .
+    description: Path to the Dart / Flutter package to perform the XRay scan against
+    required: false
+  pub-url:
+    default: https://mgmresorts.jfrog.io/artifactory/api/pub/dge-pub
+    description: URL to the Dart package repository
+    required: false
+  rbv2-signing-key:
+    default: 'mgmkey'
+    description: The RBv2 signing key to use for the RBv2 promotion.
+    required: false
+  temp-dir:
+    default: temp
+    description: Directory to use for temporary files.
+    required: false
+  token:
+    description: The GitHub token to use for authentication.
+    required: true
+  xray:
+    default: 'true'
+    description: Set to false to disable xray scanning
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Extract Pubspec Info
+      uses: ./.github/mcore_gh_actions/.github/actions/scan_pubspec
+      id: extract-pubspec-info
+      with:
+        path: ${{ inputs.path }}
+
+    - name: Parse Repo URL
+      shell: bash
+      run: |
+        echo "PUB_REPO=`echo ${{ inputs.pub-url }} | sed 's@.*\/@ @g'`" >> $GITHUB_ENV
+
+    - name: Parse Repo URL
+      shell: bash
+      run: |
+        echo "JFROG_BASE_URL=https://`echo ${{ inputs.pub-url }} | awk -F/ '{print $3}'`" >> $GITHUB_ENV
+
+    - name: Check and Setup Build ID
+      shell: bash
+      id: set_build_id
+      run: |
+        echo "BUILD_ID=${{ steps.extract-pubspec-info.outputs.PUBSPEC_VERSION }}" >> $GITHUB_ENV
+
+    - name: Echo Lock file (default)
+      if: inputs.lock-file == ''
+      shell: bash
+      run: |
+        echo "Using default lock file"
+        echo "LOCK_FILE=${{ inputs.path}}/pubspec.lock" >> $GITHUB_ENV
+
+    - name: Set the JFrog Token
+      shell: bash
+      run: echo JFROG_TOKEN=${{ inputs.jfrog-token }} >> $GITHUB_ENV
+
+    - name: Echo Lock file (custom)
+      if: inputs.lock-file != ''
+      shell: bash
+      run: |
+        echo "Using custom lock file: ${{ inputs.lock-file }}"
+        echo "LOCK_FILE=${{ inputs.lock-file }}" >> $GITHUB_ENV
+
+    - name: Show JFrog CLI Config
+      shell: bash
+      run: |
+        export "JFROG_CLI_LOG_LEVEL=DEBUG"
+        jf config show
+
+    # 2025-05-27: The XRay scan is currently disabled due to issues with the
+    # JFrog CLI and the Dart package format.  This command is correct for other
+    # package formats so it is included, but commented out, to simplify adding
+    # it when the JFrog XRay supports Dart packages.
+    #
+    # - name: Run XRay Scan
+    #   shell: bash
+    #   run: |
+    #     jf scan \
+    #       --recursive=true \
+    #       --format=json \
+    #       --fail=true \
+    #       ${{ inputs.path}}/lib/ \
+    #       ${{ inputs.path}}/test/ \
+    #       ${{ inputs.path}}/pubspec.yaml \
+    #       ${{ env.LOCK_FILE}} \
+    #       --build-name=${{ steps.extract-pubspec-info.outputs.PUBSPEC_NAME }} \
+    #       --build-number=${{ env.BUILD_ID }} \
+
+    # Creates the Release Bundle v2 (RBv2) spec file for the package.
+    # The specifics of the RBv2 spec file are defined in here:
+    # https://jfrog.com/help/r/jfrog-integrations-documentation/using-file-specs
+    - name: RBv2 Spec - Create
+      shell: bash
+      run: |
+        echo "{ \"files\": [{\"pattern\": \"${{ env.PUB_REPO }}/${{ steps.extract-pubspec-info.outputs.PUBSPEC_NAME}}/${{ steps.extract-pubspec-info.outputs.PUBSPEC_NAME}}-${{ env.BUILD_ID }}.tar.gz\"}] }" > RBv2-SPEC.json
+
+    - name: RBv2 Spec - Print
+      shell: bash
+      run: cat RBv2-SPEC.json
+
+    - name: RBv2 Create NEW
+      shell: bash
+      run: |
+        jf rbc \
+          ${{ steps.extract-pubspec-info.outputs.PUBSPEC_NAME}} \
+          ${{ env.BUILD_ID }} \
+          --sync="true" \
+          --signing-key=${{ inputs.rbv2-signing-key }} \
+          --project=${{ inputs.jfrog-release-project }} \
+          --spec=RBv2-SPEC.json
+
+    - name: RBv2 Promote PROD
+      shell: bash
+      run: |
+        jf rbp \
+          ${{ steps.extract-pubspec-info.outputs.PUBSPEC_NAME}} \
+          ${{ steps.extract-pubspec-info.outputs.PUBSPEC_VERSION }} \
+          PROD \
+          --sync=true \
+          --signing-key=${{ inputs.rbv2-signing-key }} \
+          --project=${{ inputs.jfrog-release-project }}
+
+    - name: Summarize RBv2 Operations
+      shell: bash
+      run: |-
+        echo "# :frog: Release Bundle v2 Summary :rocket: " >> $GITHUB_STEP_SUMMARY
+        echo "The Build Artifacts have been promoted to the subsequent stages." >> $GITHUB_STEP_SUMMARY
+        RB2_STATUS_RESP=$(curl -v -G "${{ env.JFROG_BASE_URL }}/lifecycle/api/v2/promotion/records/${{ steps.extract-pubspec-info.outputs.PUBSPEC_NAME}}/${{ env.BUILD_ID }}?async=false&project=${{ inputs.jfrog-release-project }}" -H 'Content-Type: application/json' -H "Authorization: Bearer ${{ inputs.jfrog-token }}")
+        echo $RB2_STATUS_RESP > RBv2_STATUS.json
+        cat RBv2_STATUS.json
+        items=$(echo "$RB2_STATUS_RESP" | jq -c -r '.promotions[]')
+        for item in ${items[@]}; do \
+          envVal=$(echo $item | jq -r '.environment'); \
+          crtVal=$(echo $item | jq -r '.created'); \
+          echo " - ${envVal} on ${crtVal} " >> $GITHUB_STEP_SUMMARY; \
+        done
+        echo " " >> $GITHUB_STEP_SUMMARY

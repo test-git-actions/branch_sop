@@ -1,0 +1,43 @@
+name: 'Setup Flutter'
+description: |
+  Sets up the Flutter SDK to prepare it for use within other workflows.  This
+  action will install the Flutter SDK, set the Pub URL, and adds the JFrog 
+  authentication token to the Dart token repository.
+inputs:
+  channel:
+    default: stable
+    description: Flutter channel to use.
+    required: false
+  flutter-version:
+    default: any
+    description: Specific Flutter version to use.
+    required: false
+  jfrog-token:
+    description: JFrog authentication token.
+    required: true
+  pub-url:
+    default: https://mgmresorts.jfrog.io/artifactory/api/pub/dge-pub
+    description: URL to the Dart package repository.
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: ${{ inputs.channel }}
+        flutter-version: ${{ inputs.flutter-version }}
+
+    - name: Set Pub URL
+      shell: bash
+      run: |
+        set -e
+        if test "${{ inputs.pub-url }}" != ""; then
+          export PUB_HOSTED_URL=${{ inputs.pub-url }}
+        fi
+
+    - name: Add JFrog Token to Dart
+      shell: bash
+      run: |
+        echo ${{ inputs.jfrog-token }} | dart pub token add ${{ inputs.pub-url }}
