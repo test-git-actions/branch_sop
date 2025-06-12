@@ -25,13 +25,6 @@ jobs:
       - name: Checkout Code Base
         uses: actions/checkout@v4
 
-      - name: Checkout Actions
-        uses: actions/checkout@v4
-        with:
-          path: .github/mcore_gh_actions
-          repository: mgmri-dge/mcore_gh_actions
-          ssh-key: ${{ secrets.SSH_PRIVATE_MCORE_GH_ACTIONS }}
-
       - uses: ./.github/mcore_gh_actions/.github/actions/setup_jfrog
         id: setup_jfrog
 
