@@ -64,7 +64,7 @@ jobs:
         uses: ./.github/mcore_gh_actions/.github/actions/setup_flutter
         with:
             channel: ${{ steps.fvm-config-action.outputs.FLUTTER_CHANNEL }}
-            flutter-version: ${{ steps.fvm-config-action.outputs.FLUTTER_VERSION }}
+            flutter-version: ${{ '3.29.2' || steps.fvm-config-action.outputs.FLUTTER_VERSION }}
             jfrog-token: ${{ steps.setup-cli.outputs.oidc-token }}
   
       - name: Set Pub URL

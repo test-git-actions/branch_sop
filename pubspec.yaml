@@ -40,7 +40,7 @@ dependencies:
 
   vega_components:
     hosted: https://mgmresorts.jfrog.io/artifactory/api/pub/dge-pub
-    version: ^3.1.18
+    version: ^3.1.0
   vega_tokens:
     hosted: https://mgmresorts.jfrog.io/artifactory/api/pub/dge-pub
     version: ^1.4.0
