@@ -19,7 +19,7 @@ description: |
 
 inputs:
   oidc-provider-name:
-    default: 'mgmri-enterprise-oidc'
+    default: 'test-exploration-oidc'
     description: OIDC provider name.
     required: false
   pub-url:
