@@ -54,18 +54,11 @@ jobs:
         uses: kuhnroyal/flutter-fvm-config-action@v2
         id: fvm-config-action
 
-    #   - name: Setup Flutter
-    #     uses: subosito/flutter-action@v2
-    #     with:
-    #       channel: ${{ steps.fvm-config-action.outputs.FLUTTER_CHANNEL }}
-    #       flutter-version: ${{ steps.fvm-config-action.outputs.FLUTTER_VERSION }}
-
       - name: Setup Flutter
-        uses: ./.github/mcore_gh_actions/.github/actions/setup_flutter
+        uses: subosito/flutter-action@v2
         with:
-            channel: ${{ steps.fvm-config-action.outputs.FLUTTER_CHANNEL }}
-            flutter-version: ${{ '3.29.2' || steps.fvm-config-action.outputs.FLUTTER_VERSION }}
-            jfrog-token: ${{ steps.setup-cli.outputs.oidc-token }}
+          channel: ${{ steps.fvm-config-action.outputs.FLUTTER_CHANNEL }}
+          flutter-version: ${{ steps.fvm-config-action.outputs.FLUTTER_VERSION }}
   
       - name: Set Pub URL
         shell: bash
@@ -87,31 +80,35 @@ jobs:
         run: |
           dart format --set-exit-if-changed test lib
 
+    #   - name: Build dev web app
+    #     run: flutter build web --release --dart-define=FLAVOR=dev
+
+    #   - name: Build prod web app
+    #     run: flutter build web --release --dart-define=FLAVOR=prod
+
       - name: Build dev web app
-        run: flutter build web --release --dart-define=FLAVOR=dev
+        run: flutter build web --release --dart-define=FLAVOR=dev --output build/dev_web
 
-    #   - uses: FirebaseExtended/action-hosting-deploy@v0
-    #     with:
-    #       repoToken: "${{ secrets.GITHUB_TOKEN }}"
-    #       firebaseServiceAccount: "${{ secrets.FIREBASE_DEV_SERVICE_ACCOUNT }}"
-    #       projectId: mgm-resorts-dev
-    #       channelId: live
-    #       target: branchSOP
-
-      - name: Build prod web app
-        run: flutter build web --release --dart-define=FLAVOR=prod
-
-      - name: Upload prod web build to JFrog
+      - name: Upload dev web build to JFrog
         run: |
-          jf rt upload "build/web/**" "dge-pub/flutter-webapp/${{ github.sha }}/" \
+          jf rt upload "build/dev_web/**" "dge-pub/flutter-webapp/${{ github.sha }}/dev/" \
             --flat=false \
             --build-name=flutter-webapp \
             --build-number=${{ github.run_number }}
 
-    #   - uses: FirebaseExtended/action-hosting-deploy@v0
-    #     with:
-    #       repoToken: "${{ secrets.GITHUB_TOKEN }}"
-    #       firebaseServiceAccount: "${{ secrets.FIREBASE_PROD_SERVICE_ACCOUNT }}"
-    #       projectId: mgm-resorts-app
-    #       channelId: live
-    #       target: branchSOP
+      - name: Build prod web app
+        run: flutter build web --release --dart-define=FLAVOR=prod --output build/prod_web
+
+      - name: Upload prod web build to JFrog
+        run: |
+          jf rt upload "build/prod_web/**" "dge-pub/flutter-webapp/${{ github.sha }}/prod/" \
+            --flat=false \
+            --build-name=flutter-webapp \
+            --build-number=${{ github.run_number }}
+
+    #   - name: Upload prod web build to JFrog
+    #     run: |
+    #       jf rt upload "build/web/**" "dge-pub/flutter-webapp/${{ github.sha }}/" \
+    #         --flat=false \
+    #         --build-name=flutter-webapp \
+    #         --build-number=${{ github.run_number }}
