@@ -21,7 +21,7 @@ env:
   jf_url: https://mgmresorts.jfrog.io/artifactory/api/pub/dge-pub
   jf_disable_job_summary: false
   oidc_provider_name: "test-exploration-oidc"
-  build_name: "branch-sop-flutter-webapp"
+  build_name: "flutter-webapp"
 
 jobs:
   deploy_live_website:
@@ -86,9 +86,9 @@ jobs:
 
       - name: Upload dev web build to JFrog
         run: |
-          jf rt upload "build/dev_web/**" "dge-pub/flutter-webapp/${{ github.sha }}/dev/" \
+          jf rt upload "build/dev_web/**" "dge-pub/${{ env.build_name }}/${{ github.sha }}/dev/" \
             --flat=false \
-            --build-name=flutter-webapp \
+            --build-name=${{ env.build_name }} \
             --build-number=${{ github.run_number }}
 
       - name: Build prod web app
@@ -96,9 +96,9 @@ jobs:
 
       - name: Upload prod web build to JFrog
         run: |
-          jf rt upload "build/prod_web/**" "dge-pub/flutter-webapp/${{ github.sha }}/prod/" \
+          jf rt upload "build/prod_web/**" "dge-pub/${{ env.build_name }}/${{ github.sha }}/prod/" \
             --flat=false \
-            --build-name=flutter-webapp \
+            --build-name=${{ env.build_name }} \
             --build-number=${{ github.run_number }}
 
       - name: Build Collect Environment
