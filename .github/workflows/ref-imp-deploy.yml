@@ -58,7 +58,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: ${{ steps.fvm-config-action.outputs.FLUTTER_CHANNEL }}
-          flutter-version: ${{ steps.fvm-config-action.outputs.FLUTTER_VERSION }}
+          flutter-version: ${{ '3.29.2' || steps.fvm-config-action.outputs.FLUTTER_VERSION }}
   
       - name: Set Pub URL
         shell: bash
