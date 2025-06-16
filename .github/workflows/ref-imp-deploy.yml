@@ -80,7 +80,7 @@ jobs:
       - name: JFrog Audit
         continue-on-error: true
         run: |
-          jf audit --recursive=true --watches="default-watch"
+          jf audit --watches="default-watch"
 
       - name: Verify formatting
         run: |
@@ -89,7 +89,7 @@ jobs:
       - name: Flutter JFrog Xray Scan
         run: |-
             echo "Starting Xray scan..."
-            jf xr scan --recursive=true --format=json --fail=true \
+            jf scan --recursive=true --format=json --fail=true \
                 lib/ test/ pubspec.yaml pubspec.lock \
                 --build-name=${{ env.build_name }} \
                 --build-number=${{ github.run_number }}
