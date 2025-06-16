@@ -91,6 +91,18 @@ jobs:
             --build-name=${{ env.build_name }} \
             --build-number=${{ github.run_number }}
 
+      - name: JFrog Xray Scan
+        run: |
+          jf audit --build=${{ env.build_name }}/${{ github.run_number }} --watches="default-watch"
+
+      - name: Flutter JFrog Xray Scan
+        run: |-
+            echo "Starting Xray scan..."
+            jf xr scan --recursive=true --format=json --fail=true \
+              lib/ test/ pubspec.yaml pubspec.lock \
+              --build-name=${{ env.build_name }} \
+              --build-number=${{ github.run_number }}
+
       - name: Build prod web app
         run: flutter build web --release --dart-define=FLAVOR=prod --output build/prod_web
 
