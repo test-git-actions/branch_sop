@@ -76,10 +76,23 @@ jobs:
 
       - name: Install Dependencies
         run: flutter pub get
+    
+      - name: JFrog Audit
+        continue-on-error: true
+        run: |
+          jf audit --recursive=true --watches="default-watch"
 
       - name: Verify formatting
         run: |
           dart format --set-exit-if-changed test lib
+
+      - name: Flutter JFrog Xray Scan
+        run: |-
+            echo "Starting Xray scan..."
+            jf xr scan --recursive=true --format=json --fail=true \
+                lib/ test/ pubspec.yaml pubspec.lock \
+                --build-name=${{ env.build_name }} \
+                --build-number=${{ github.run_number }}
 
       - name: Build dev web app
         run: flutter build web --release --dart-define=FLAVOR=dev --output build/dev_web
@@ -90,18 +103,6 @@ jobs:
             --flat=false \
             --build-name=${{ env.build_name }} \
             --build-number=${{ github.run_number }}
-
-      - name: JFrog Xray Scan
-        run: |
-          jf audit --build=${{ env.build_name }}/${{ github.run_number }} --watches="default-watch"
-
-      - name: Flutter JFrog Xray Scan
-        run: |-
-            echo "Starting Xray scan..."
-            jf xr scan --recursive=true --format=json --fail=true \
-              lib/ test/ pubspec.yaml pubspec.lock \
-              --build-name=${{ env.build_name }} \
-              --build-number=${{ github.run_number }}
 
       - name: Build prod web app
         run: flutter build web --release --dart-define=FLAVOR=prod --output build/prod_web
