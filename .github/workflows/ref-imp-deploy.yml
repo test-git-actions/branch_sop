@@ -80,7 +80,7 @@ jobs:
       - name: JFrog Audit
         continue-on-error: true
         run: |
-          jf audit --watches="default-watch"
+          jf audit --watches="default-watch" --exclusions=ios;android
 
       - name: Verify formatting
         run: |
